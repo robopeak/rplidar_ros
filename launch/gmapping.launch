@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<launch>
+    
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 base_link laser 100" />
+  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="1 0 0 0 0 0 odom base_link 100" />
+
+  <node pkg="gmapping" type="slam_gmapping" name="simple_gmapping" output="screen">
+      <param name="map_update_interval" value="0.1" />
+      <param name="particles" value="1" />
+      <param name="angularUpdate" value="0.0" />
+      <param name="linearUpdate" value="0.0" />
+      <param name="iterations" value="10" />
+      <param name="delta" value="0.05" />
+      <param name="srr" value="1.0" />
+      <param name="srt" value="1.0" />
+      <param name="stt" value="1.0" />
+      <param name="str" value="1.0" />
+  </node>
+
+
+
+</launch>
