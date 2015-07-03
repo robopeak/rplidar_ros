@@ -66,7 +66,7 @@ void publish_scan(ros::Publisher *pub,
     scan_msg.header.frame_id = frame_id;
     scan_count++;
 
-    scan_msg.angle_min =  M_PI - angle_min;
+    scan_msg.angle_min =  -1*(M_PI - angle_min);
     scan_msg.angle_max =  M_PI - angle_max;
     scan_msg.angle_increment = 
         (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
@@ -216,7 +216,7 @@ int main(int argc, char * argv[]) {
             op_result = drv->ascendScanData(nodes, count);
 
             float angle_min = DEG2RAD(0.0f);
-            float angle_max = DEG2RAD(359.0f);
+            float angle_max = DEG2RAD(0.0f);
             if (op_result == RESULT_OK) {
                 if (angle_compensate) {
                     const int angle_compensate_nodes_count = 360;
