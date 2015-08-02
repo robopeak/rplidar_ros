@@ -108,21 +108,24 @@ bool checkRPLIDARHealth(RPlidarDriver * drv)
     rplidar_response_device_health_t healthinfo;
 
     op_result = drv->getHealth(healthinfo);
-    if (IS_OK(op_result)) { 
-        printf("RPLidar health status : %d\n", healthinfo.status);
-        
-        if (healthinfo.status == RPLIDAR_STATUS_ERROR) {
-            fprintf(stderr, "Error, rplidar internal error detected."
-                            "Please reboot the device to retry.\n");
-            return false;
-        } else {
-            return true;
+    if (IS_OK(op_result)) {
+      switch (healthinfo.status) {
+        case(RPLIDAR_STATUS_OK) : {
+          ROS_INFO_STREAM("RPLidar : health ok");
+          return true;
         }
-
+        case(RPLIDAR_STATUS_ERROR) : {
+          ROS_ERROR_STREAM("RPLidar : health check failed, please reboot the device");
+          return false;
+        }
+        default: {
+          ROS_WARN_STREAM("RPLidar : health not ok, but unhandled status returned [" << healthinfo.status << "]");
+          return true;
+        }
+      }
     } else {
-        fprintf(stderr, "Error, cannot retrieve rplidar health code: %x\n", 
-                        op_result);
-        return false;
+      ROS_ERROR("RPLidar : cannot retrieve the rplidar health status %x", op_result);
+      return false;
     }
 }
 
@@ -179,9 +182,10 @@ int main(int argc, char * argv[]) {
     }
 
     // make connection...
-    if (IS_FAIL(drv->connect(serial_port.c_str(), (_u32)serial_baudrate))) {
-        fprintf(stderr, "Error, cannot bind to the specified serial port %s.\n"
-            , serial_port.c_str());
+    ROS_INFO_STREAM("RPLidar : connecting on " << serial_port << " [" << serial_baudrate << "]");
+    u_result result = drv->connect(serial_port.c_str(), (_u32)serial_baudrate);
+    if (IS_FAIL(result)) {
+      ROS_ERROR_STREAM("RPLidar: cannot bind to the specified serial port [" << serial_port << "]");
         RPlidarDriver::DisposeDriver(drv);
         return -1;
     }
@@ -192,12 +196,14 @@ int main(int argc, char * argv[]) {
         return -1;
     }
 
+    ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
+    ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
 
-	ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
-	ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
-	
-    // start scan...
-    drv->startScan();
+    // start scan...can pass true to this to 'force' it, whatever that is
+    u_result start_scan_result = drv->startScan();
+    if ( start_scan_result != RESULT_OK ) {
+      ROS_ERROR_STREAM("RPLidar : failed to put the device into scanning mode [" << start_scan_result << "]");
+    }
 
     ros::Time start_scan_time;
     ros::Time end_scan_time;
@@ -268,6 +274,8 @@ int main(int argc, char * argv[]) {
                              angle_min, angle_max, 
                              frame_id);
             }
+        } else if ( op_result == RESULT_OPERATION_TIMEOUT) {
+          ROS_WARN_STREAM_THROTTLE(15, "RPLidar : she's dead Jim! [timed out waiting for a full 360 scan]");
         }
 
         ros::spinOnce();
