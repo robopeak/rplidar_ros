@@ -38,6 +38,7 @@
 
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
+#include "std_srvs/Trigger.h"
 #include "std_srvs/Empty.h"
 
 #include "rplidar.h" //RPLIDAR standard sdk, all-in-one header
@@ -152,6 +153,103 @@ bool start_motor(std_srvs::Empty::Request &req,
   return true;
 }
 
+bool reset_device(std_srvs::Trigger::Request &req,
+                  std_srvs::Trigger::Response &res)
+{
+  if(!drv)
+  {
+    return false;
+  }
+  ROS_INFO("Resetting the device.");
+  u_result op_result;
+  op_result = drv->reset();
+  if (op_result == RESULT_OK)
+  {
+    res.success = true;
+  }
+  else
+  {
+    ROS_ERROR("Failed to reset the device! (%i)", op_result);
+    res.success = false;
+  }
+  return true;
+}
+
+bool reset_scan(std_srvs::Trigger::Request &req,
+                std_srvs::Trigger::Response &res)
+{
+  if(!drv)
+  {
+    return false;
+  }
+  ROS_INFO("Resetting scanning.");
+  u_result op_result;
+  op_result = drv->stop();
+  if (op_result == RESULT_OK)
+  {
+    ROS_INFO("Stopped scanning.");
+    op_result = drv->startScan();
+    if (op_result == RESULT_OK)
+    {
+      ROS_INFO("Restarted scanning.");
+      res.success = true;
+    }
+    else
+    {
+      ROS_ERROR("Failed to restart scanning. (%i)", op_result);
+      res.success = false;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Failed to stop scanning. (%i)", op_result);
+    res.success = false;
+  }
+  return true;
+}
+
+int init_driver(std::string& serial_port, int& serial_baudrate)
+{
+  ROS_INFO_STREAM("RPlidar : Initialising driver.");
+
+  // create the driver instance
+  drv = RPlidarDriver::CreateDriver(RPlidarDriver::DRIVER_TYPE_SERIALPORT);
+
+  if (!drv)
+  {
+    ROS_ERROR_STREAM("RPlidar : Failed to create driver!");
+    return -2;
+  }
+
+  // make connection...
+  ROS_INFO_STREAM("RPlidar : Connecting on " << serial_port << " [" << serial_baudrate << "]");
+  u_result result = drv->connect(serial_port.c_str(), (_u32)serial_baudrate);
+  if (IS_FAIL(result))
+  {
+    ROS_ERROR_STREAM("RPlidar : Cannot bind to the specified serial port [" << serial_port << "]");
+    RPlidarDriver::DisposeDriver(drv);
+    return -1;
+  }
+
+  // check health...
+  if (!checkRPLIDARHealth(drv))
+  {
+    RPlidarDriver::DisposeDriver(drv);
+    return -1;
+  }
+
+  // start scan...can pass true to this to 'force' it, whatever that is
+  u_result start_scan_result = drv->startScan();
+  if ( start_scan_result != RESULT_OK )
+  {
+    ROS_ERROR_STREAM("RPLidar : Failed to put the device into scanning mode [" << start_scan_result << "]");
+    RPlidarDriver::DisposeDriver(drv);
+    return -1;
+  }
+
+  return 0;
+}
+
 
 int main(int argc, char * argv[]) {
     ros::init(argc, argv, "rplidar_node");
@@ -161,55 +259,39 @@ int main(int argc, char * argv[]) {
     std::string frame_id;
     bool inverted = false;
     bool angle_compensate = true;
-
-    ros::NodeHandle nh;
-    ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 1000);
-    ros::NodeHandle nh_private("~");
-    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0"); 
-    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200); 
-    nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
-    nh_private.param<bool>("inverted", inverted, "false");
-    nh_private.param<bool>("angle_compensate", angle_compensate, "true");
-	
-    u_result     op_result;
-   
-    // create the driver instance
-	drv = RPlidarDriver::CreateDriver(RPlidarDriver::DRIVER_TYPE_SERIALPORT);
-    
-    if (!drv) {
-        fprintf(stderr, "Create Driver fail, exit\n");
-        return -2;
-    }
-
-    // make connection...
-    ROS_INFO_STREAM("RPLidar : connecting on " << serial_port << " [" << serial_baudrate << "]");
-    u_result result = drv->connect(serial_port.c_str(), (_u32)serial_baudrate);
-    if (IS_FAIL(result)) {
-      ROS_ERROR_STREAM("RPLidar: cannot bind to the specified serial port [" << serial_port << "]");
-        RPlidarDriver::DisposeDriver(drv);
-        return -1;
-    }
-
-    // check health...
-    if (!checkRPLIDARHealth(drv)) {
-        RPlidarDriver::DisposeDriver(drv);
-        return -1;
-    }
-
-    ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
-    ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
-
-    // start scan...can pass true to this to 'force' it, whatever that is
-    u_result start_scan_result = drv->startScan();
-    if ( start_scan_result != RESULT_OK ) {
-      ROS_ERROR_STREAM("RPLidar : failed to put the device into scanning mode [" << start_scan_result << "]");
-    }
-
+    u_result op_result;
     ros::Time start_scan_time;
     ros::Time end_scan_time;
     double scan_duration;
-    while (ros::ok()) {
+    bool initialised = false;
+    int res = 0;
 
+    ros::NodeHandle nh;
+    ros::NodeHandle nh_private("~");
+    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
+    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
+    nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
+    nh_private.param<bool>("inverted", inverted, "false");
+    nh_private.param<bool>("angle_compensate", angle_compensate, "true");
+
+    res = init_driver(serial_port, serial_baudrate);
+    if (res < 0)
+    {
+      ROS_ERROR_STREAM("Failed to initialise driver. Exiting.");
+      return res;
+    }
+    initialised = true;
+
+    ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 1000);
+    ros::ServiceServer stop_motor_service = nh_private.advertiseService("stop_motor", stop_motor);
+    ros::ServiceServer start_motor_service = nh_private.advertiseService("start_motor", start_motor);
+    ros::ServiceServer reset_device_service = nh_private.advertiseService("reset_device", reset_device);
+    ros::ServiceServer reset_scan_service = nh_private.advertiseService("reset_scan", reset_scan);
+
+    while (ros::ok())
+    {
+      if (initialised)
+      {
         rplidar_response_measurement_node_t nodes[360*2];
         size_t   count = _countof(nodes);
 
@@ -241,7 +323,7 @@ int main(int argc, char * argv[]) {
                             }
                         }
                     }
-  
+
                     publish_scan(&scan_pub, angle_compensate_nodes, angle_compensate_nodes_count,
                              start_scan_time, scan_duration, inverted,  
                              angle_min, angle_max, 
@@ -274,14 +356,30 @@ int main(int argc, char * argv[]) {
                              angle_min, angle_max, 
                              frame_id);
             }
-        } else if ( op_result == RESULT_OPERATION_TIMEOUT) {
-          ROS_WARN_STREAM_THROTTLE(15, "RPLidar : she's dead Jim! [timed out waiting for a full 360 scan]");
         }
-
-        ros::spinOnce();
+        else if ( op_result == RESULT_OPERATION_TIMEOUT)
+        {
+          ROS_WARN_STREAM("RPLidar : She's dead Jim! [timed out waiting for a full 360 scan]");
+          initialised = false;
+        }
+      }
+      else
+      {
+        ROS_INFO("Re-initialising driver ...");
+        res = init_driver(serial_port, serial_baudrate);
+        if (res < 0)
+        {
+          ROS_ERROR_STREAM("Failed to re-initialise driver. Will keep trying.");
+        }
+        else
+        {
+          initialised = true;
+        }
+      }
+      ros::spinOnce();
     }
-	
+
     // done!
-	RPlidarDriver::DisposeDriver(drv);
+    RPlidarDriver::DisposeDriver(drv);
     return 0;
 }
