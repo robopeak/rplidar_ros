@@ -224,9 +224,17 @@ int raw_serial::waitfordata(size_t data_count, _u32 timeout, size_t * returned_s
         }
     }
 
+    _u32 startTs = getms();
+    _u32 waitTime;
+
     while ( isOpened() )
     {
-        /* Do the select */
+        if ((waitTime=getms() - startTs) >= timeout)
+        {
+          return ANS_TIMEOUT;
+        }
+
+	/* Do the select */
         int n = ::select(max_fd, &input_set, NULL, NULL, &timeout_val);
 
         if (n < 0)
