@@ -370,6 +370,7 @@ int main(int argc, char * argv[]) {
         if (res < 0)
         {
           ROS_ERROR_STREAM("Failed to re-initialise driver. Will keep trying.");
+          ros::Duration(1.0).sleep();
         }
         else
         {
