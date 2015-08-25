@@ -99,7 +99,6 @@ u_result RPlidarDriverSerialImpl::connect(const char * port_path, _u32 baudrate,
 
     _rxtx->flush(0);
     _isConnected = true;
-
     return RESULT_OK;
 }
 
@@ -245,6 +244,7 @@ u_result RPlidarDriverSerialImpl::startScan(bool force, _u32 timeout)
         _isScanning = true;
         _cachethread = CLASS_THREAD(RPlidarDriverSerialImpl, _cacheScanData);
     }
+
     return RESULT_OK;
 }
 
