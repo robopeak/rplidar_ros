@@ -53,54 +53,65 @@ void publish_scan(ros::Publisher *pub,
                   double scan_time, bool inverted,
                   float angle_min, float angle_max,
                   std::string frame_id)
-{
-    static int scan_count = 0;
-    sensor_msgs::LaserScan scan_msg;
+  {
+    // Check if the data size is equal to 360. If not, then don't publish it.
+    // This is required because the processing pipeline and other nodes using
+    // this data might be affected or crash specially if node_count is 1,
+    // causing time_increment and angle_increment to be 'inf'
+    if (node_count == 360) {
 
-    scan_msg.header.stamp = start;
-    scan_msg.header.frame_id = frame_id;
-    scan_count++;
+        static int scan_count = 0;
+        sensor_msgs::LaserScan scan_msg;
 
-    bool reversed = (angle_max > angle_min);
-    if ( reversed ) {
-      scan_msg.angle_min =  M_PI - angle_max;
-      scan_msg.angle_max =  M_PI - angle_min;
-    } else {
-      scan_msg.angle_min =  M_PI - angle_min;
-      scan_msg.angle_max =  M_PI - angle_max;
-    }
-    scan_msg.angle_increment =
-        (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
+        scan_msg.header.stamp = start;
+        scan_msg.header.frame_id = frame_id;
+        scan_count++;
 
-    scan_msg.scan_time = scan_time;
-    scan_msg.time_increment = scan_time / (double)(node_count-1);
-    scan_msg.range_min = 0.15;
-    scan_msg.range_max = 6.;
-
-    scan_msg.intensities.resize(node_count);
-    scan_msg.ranges.resize(node_count);
-    bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
-    if (!reverse_data) {
-        for (size_t i = 0; i < node_count; i++) {
-            float read_value = (float) nodes[i].distance_q2/4.0f/1000;
-            if (read_value == 0.0)
-                scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
-            else
-                scan_msg.ranges[i] = read_value;
-            scan_msg.intensities[i] = (float) (nodes[i].sync_quality >> 2);
+        bool reversed = (angle_max > angle_min);
+        if ( reversed ) {
+          scan_msg.angle_min =  M_PI - angle_max;
+          scan_msg.angle_max =  M_PI - angle_min;
+        } else {
+          scan_msg.angle_min =  M_PI - angle_min;
+          scan_msg.angle_max =  M_PI - angle_max;
         }
-    } else {
-        for (size_t i = 0; i < node_count; i++) {
-            float read_value = (float)nodes[i].distance_q2/4.0f/1000;
-            if (read_value == 0.0)
-                scan_msg.ranges[node_count-1-i] = std::numeric_limits<float>::infinity();
-            else
-                scan_msg.ranges[node_count-1-i] = read_value;
-            scan_msg.intensities[node_count-1-i] = (float) (nodes[i].sync_quality >> 2);
-        }
-    }
+        scan_msg.angle_increment =
+            (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
 
-    pub->publish(scan_msg);
+        scan_msg.scan_time = scan_time;
+        scan_msg.time_increment = scan_time / (double)(node_count-1);
+        scan_msg.range_min = 0.15;
+        scan_msg.range_max = 6.;
+
+        scan_msg.intensities.resize(node_count);
+        scan_msg.ranges.resize(node_count);
+        bool reverse_data = (!inverted && reversed) || (inverted && !reversed);
+        if (!reverse_data) {
+            for (size_t i = 0; i < node_count; i++) {
+                float read_value = (float) nodes[i].distance_q2/4.0f/1000;
+                if (read_value == 0.0)
+                    scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
+                else
+                    scan_msg.ranges[i] = read_value;
+                scan_msg.intensities[i] = (float) (nodes[i].sync_quality >> 2);
+            }
+        } else {
+            for (size_t i = 0; i < node_count; i++) {
+                float read_value = (float)nodes[i].distance_q2/4.0f/1000;
+                if (read_value == 0.0)
+                    scan_msg.ranges[node_count-1-i] = std::numeric_limits<float>::infinity();
+                else
+                    scan_msg.ranges[node_count-1-i] = read_value;
+                scan_msg.intensities[node_count-1-i] = (float) (nodes[i].sync_quality >> 2);
+            }
+        }
+
+        pub->publish(scan_msg);
+
+    } else {
+      fprintf(stderr, "Error, data size not equal to full scan, skipping publish."
+                      "[node_count : %lu]\n", node_count);
+    }
 }
 
 bool checkRPLIDARHealth(RPlidarDriver * drv)
@@ -109,9 +120,9 @@ bool checkRPLIDARHealth(RPlidarDriver * drv)
     rplidar_response_device_health_t healthinfo;
 
     op_result = drv->getHealth(healthinfo);
-    if (IS_OK(op_result)) { 
+    if (IS_OK(op_result)) {
         printf("RPLidar health status : %d\n", healthinfo.status);
-        
+
         if (healthinfo.status == RPLIDAR_STATUS_ERROR) {
             fprintf(stderr, "Error, rplidar internal error detected."
                             "Please reboot the device to retry.\n");
@@ -121,7 +132,7 @@ bool checkRPLIDARHealth(RPlidarDriver * drv)
         }
 
     } else {
-        fprintf(stderr, "Error, cannot retrieve rplidar health code: %x\n", 
+        fprintf(stderr, "Error, cannot retrieve rplidar health code: %x\n",
                         op_result);
         return false;
     }
@@ -162,8 +173,8 @@ int main(int argc, char * argv[]) {
     ros::NodeHandle nh;
     ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 1000);
     ros::NodeHandle nh_private("~");
-    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0"); 
-    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200); 
+    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
+    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
     nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
     nh_private.param<bool>("inverted", inverted, "false");
     nh_private.param<bool>("angle_compensate", angle_compensate, "true");
@@ -172,7 +183,7 @@ int main(int argc, char * argv[]) {
 
     // create the driver instance
     drv = RPlidarDriver::CreateDriver(RPlidarDriver::DRIVER_TYPE_SERIALPORT);
-    
+
     if (!drv) {
         fprintf(stderr, "Create Driver fail, exit\n");
         return -2;
@@ -234,7 +245,7 @@ int main(int argc, char * argv[]) {
                             }
                         }
                     }
-  
+
                     publish_scan(&scan_pub, angle_compensate_nodes, angle_compensate_nodes_count,
                              start_scan_time, scan_duration, inverted,
                              angle_min, angle_max,
@@ -258,14 +269,17 @@ int main(int argc, char * argv[]) {
                              frame_id);
                }
             } else if (op_result == RESULT_OPERATION_FAIL) {
-                // All the data is invalid, just publish them
-                float angle_min = DEG2RAD(0.0f);
-                float angle_max = DEG2RAD(359.0f);
+                // All the data is invalid
+                // Should not publish this data
+                // because it can affect or crash the programs using it
 
-                publish_scan(&scan_pub, nodes, count,
-                             start_scan_time, scan_duration, inverted,
-                             angle_min, angle_max,
-                             frame_id);
+                // float angle_min = DEG2RAD(0.0f);
+                // float angle_max = DEG2RAD(359.0f);
+                //
+                // publish_scan(&scan_pub, nodes, count,
+                //              start_scan_time, scan_duration, inverted,
+                //              angle_min, angle_max,
+                //              frame_id);
             }
         }
 
