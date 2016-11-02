@@ -59,7 +59,7 @@ public:
 
     /// Dispose the RPLIDAR Driver Instance specified by the drv parameter
     /// Applications should invoke this interface when the driver instance is no longer used in order to free memory
-    static void DisposeDriver(RPlidarDriver * drv);
+    static void DisposeDriver(RPlidarDriver ** drv);
 
 
 public:
