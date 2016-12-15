@@ -1,0 +1,23 @@
+<!--
+  notice : you should install karto-slam at first, command 'sudo apt-get install ros-indigo-open-karto'and 'sudo apt-get install ros-indigo-slam-karto'.
+           this launch just for test, you should improve the param for the best result.
+
+  you nedd change the frame of the "static_transform_publisher" when using the real robot platform.
+  it is better  subscribe the topic /odom with true to slam in gmapping
+
+E-mail: kint.zhao@slamtec.com
+ -->
+<launch>
+
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 base_link laser 100" /> <!--change -->
+  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="0 0 0 0 0 0 odom base_link 100" /> <!--change -->
+
+  <node pkg="slam_karto" type="slam_karto" name="slam_karto" output="screen">
+    <remap from="scan" to="scan"/>
+    <param name="odom_frame" value="odom"/>
+    <param name="map_update_interval" value="25"/>
+    <param name="resolution" value="0.025"/>
+    <rosparam command="load" file="$(find rplidar_ros)/launch/karto_mapper_params.yaml" />
+  </node>
+
+</launch>

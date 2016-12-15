@@ -1,21 +1,48 @@
-<?xml version="1.0"?>
+<!--
+  notice : you should install gmapping-slam at first, command 'sudo apt-get install ros-indigo-gmapping'and 'sudo apt-get install ros-indigo-slam-gmapping'.
+           this launch just for test, you should improve the param for the best result.
 
+  you nedd change the frame of the "static_transform_publisher" when using the real robot platform.
+  it is better  subscribe the topic /odom with true to slam in gmapping
+
+E-mail: kint.zhao@slamtec.com
+ -->
 <launch>
-    
-  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="1 0 0 0 0 0 base_link laser 100" />
-  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="1 0 0 0 0 0 odom base_link 100" />
+
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 base_link laser 100" /> <!--change -->
+  <node pkg="tf" type="static_transform_publisher" name="link2_broadcaster" args="0 0 0 0 0 0 odom base_link 100" /> <!--change -->
 
   <node pkg="gmapping" type="slam_gmapping" name="simple_gmapping" output="screen">
-      <param name="map_update_interval" value="0.1" />
-      <param name="particles" value="1" />
-      <param name="angularUpdate" value="0.0" />
-      <param name="linearUpdate" value="0.0" />
-      <param name="iterations" value="10" />
-      <param name="delta" value="0.05" />
-      <param name="srr" value="1.0" />
-      <param name="srt" value="1.0" />
-      <param name="stt" value="1.0" />
-      <param name="str" value="1.0" />
+      <!--remap from="scan" to="base_scan"/-->
+      <param name="map_update_interval" value="5.0"/>
+      <param name="maxUrange" value="8.0"/>
+      <param name="sigma" value="0.05"/>
+      <param name="kernelSize" value="1"/>
+      <param name="lstep" value="0.05"/>
+      <param name="astep" value="0.05"/>
+      <param name="iterations" value="5"/>
+      <param name="lsigma" value="0.075"/>
+      <param name="ogain" value="3.0"/>
+      <param name="lskip" value="0"/>
+      <param name="minimumScore" value="50"/>
+      <param name="srr" value="0.1"/>
+      <param name="srt" value="0.2"/>
+      <param name="str" value="0.1"/>
+      <param name="stt" value="0.2"/>
+      <param name="linearUpdate" value="0.3"/>
+      <param name="angularUpdate" value="0.4"/>
+      <param name="temporalUpdate" value="3.0"/>
+      <param name="resampleThreshold" value="0.5"/>
+      <param name="particles" value="30"/>
+      <param name="xmin" value="-5.0"/>
+      <param name="ymin" value="-5.0"/>
+      <param name="xmax" value="5.0"/>
+      <param name="ymax" value="5.0"/>
+      <param name="delta" value="0.05"/>
+      <param name="llsamplerange" value="0.01"/>
+      <param name="llsamplestep" value="0.01"/>
+      <param name="lasamplerange" value="0.005"/>
+      <param name="lasamplestep" value="0.005"/>
   </node>
 
 
