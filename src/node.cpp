@@ -32,11 +32,13 @@
  *
  */
 
-#include "ros/ros.h"
-#include "sensor_msgs/LaserScan.h"
-#include "std_srvs/Empty.h"
-#include "rplidar.h"
+#include <ros/ros.h>
+#include <dynamic_reconfigure/server.h>
+#include <rplidar_ros/LidarConfig.h>
+#include <std_srvs/Empty.h>
+#include <sensor_msgs/LaserScan.h>
 
+#include "rplidar.h"
 #ifndef _countof
 #define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
 #endif
@@ -54,6 +56,7 @@ private:
     // methods
     void start();
     void stop();
+    void dynparam_callback(rplidar_ros::LidarConfig &config, uint32_t level);
     void publish_scan(
         rplidar_response_measurement_node_t *nodes,
         size_t node_count, ros::Time start,
@@ -73,11 +76,13 @@ private:
     bool inverted;
     bool angle_compensate;
     ros::NodeHandle nh;
+    ros::NodeHandle nh_private;
     // publications
     ros::Publisher scan_pub;
     // services
     ros::ServiceServer stop_motor_service;
     ros::ServiceServer start_motor_service;
+    dynamic_reconfigure::Server<rplidar_ros::LidarConfig> dynparam_server;
 };
 
 RPlidarNode::RPlidarNode() :
@@ -87,7 +92,8 @@ RPlidarNode::RPlidarNode() :
     frame_id(),
     inverted(),
     angle_compensate(),
-    nh("~"),
+    nh(),
+    nh_private("~"),
     // publications
     scan_pub(nh.advertise<sensor_msgs::LaserScan>("scan", 1000)),
     // services
@@ -97,11 +103,11 @@ RPlidarNode::RPlidarNode() :
         "start_motor", &RPlidarNode::start_motor, this))
 {
 
-    nh.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
-    nh.param<int>("serial_baudrate", serial_baudrate, 115200);
-    nh.param<std::string>("frame_id", frame_id, "laser_frame");
-    nh.param<bool>("inverted", inverted, false);
-    nh.param<bool>("angle_compensate", angle_compensate, true);
+    nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0");
+    nh_private.param<int>("serial_baudrate", serial_baudrate, 115200);
+    nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
+    nh_private.param<bool>("inverted", inverted, false);
+    nh_private.param<bool>("angle_compensate", angle_compensate, true);
 
     printf("RPLIDAR running on ROS package rplidar_ros\n"
            "SDK Version: "RPLIDAR_SDK_VERSION"\n");
@@ -135,6 +141,11 @@ RPlidarNode::RPlidarNode() :
         throw std::runtime_error("Health check failed\n");
     }
 
+    // setup dynparam server
+    dynamic_reconfigure::Server<rplidar_ros::LidarConfig>::CallbackType cb;
+    cb = boost::bind(&RPlidarNode::dynparam_callback, this, _1, _2);
+    dynparam_server.setCallback(cb);
+
     // start scanning
     start();
 }
@@ -150,6 +161,11 @@ void RPlidarNode::start() {
     drv->startMotor();
     drv->setMotorPWM(motor_pwm);
     drv->startScan();
+}
+
+void RPlidarNode::dynparam_callback(rplidar_ros::LidarConfig &config, uint32_t level) {
+    drv->setMotorPWM(config.motor_pwm);
+    ROS_INFO("Reconfigure Request: motor_pwm %d", config.motor_pwm);
 }
 
 RPlidarNode::~RPlidarNode() {
