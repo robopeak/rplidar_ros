@@ -1,9 +1,30 @@
 <launch>
+  <arg name="serial_port" default="/dev/ttyUSB0"/>
+  <arg name="serial_baudrate" default="115200"/>
+  <arg name="frame_id" default="laser"/>
+  <arg name="inverted" default="false"/>
+  <arg name="angle_compensate" default="true"/>
+  <arg name="motor_pwm" default="660"/>
+  <arg name="rviz" default="false"/>
+  <arg name="test" default="false"/>
+
   <node name="rplidarNode"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
-  <param name="serial_port"         type="string" value="/dev/ttyUSB0"/>  
-  <param name="serial_baudrate"     type="int"    value="115200"/>
-  <param name="frame_id"            type="string" value="laser"/>
-  <param name="inverted"            type="bool"   value="false"/>
-  <param name="angle_compensate"    type="bool"   value="true"/>
+    <param name="serial_port"         type="string" value="$(arg serial_port)"/>  
+    <param name="serial_baudrate"     type="int"    value="$(arg serial_baudrate)"/>
+    <param name="frame_id"            type="string" value="$(arg frame_id)"/>
+    <param name="inverted"            type="bool"   value="$(arg inverted)"/>
+    <param name="angle_compensate"    type="bool"   value="$(arg angle_compensate)"/>
+    <param name="motor_pwm"           type="int"    value="$(arg motor_pwm)"/>
   </node>
+
+  <group if="$(arg rviz)">
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find rplidar_ros)/rviz/rplidar.rviz"/>
+  </group>
+
+  <group if="$(arg test)">
+    <node name="rplidarNodeClient" pkg="rplidar_ros"  type="rplidarNodeClient" output="screen"/>
+  </group>
+
 </launch>
+
+<!-- vim: set et fenc=utf-8 ff=unix sts=0 sw=2 ts=2 : -->

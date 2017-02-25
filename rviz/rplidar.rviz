@@ -73,7 +73,7 @@ Visualization Manager:
       Size (Pixels): 5
       Size (m): 0.03
       Style: Squares
-      Topic: /scan
+      Topic: /rplidarNode/scan
       Use Fixed Frame: true
       Use rainbow: true
       Value: true

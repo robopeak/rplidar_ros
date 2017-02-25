@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "rplidar_node_client");
     ros::NodeHandle n;
 
-    ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 1000, scanCallback);
+    ros::Subscriber sub = n.subscribe<sensor_msgs::LaserScan>("/rplidarNode/scan", 1000, scanCallback);
 
     ros::spin();
 
