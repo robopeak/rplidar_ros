@@ -34,6 +34,7 @@
 
 #include "arch/linux/arch_linux.h"
 #include "arch/linux/net_serial.h"
+#include <errno.h>
 #include <termios.h>
 #include <sys/select.h>
 
@@ -229,6 +230,9 @@ int raw_serial::waitfordata(size_t data_count, _u32 timeout, size_t * returned_s
         if (n < 0)
         {
             // select error
+            if (errno == EINTR) {
+                continue;
+            }
             return ANS_DEV_ERR;
         }
         else if (n == 0)
