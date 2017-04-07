@@ -131,6 +131,7 @@ u_result Thread::join(unsigned long timeout)
     if (!this->_handle) return RESULT_OK;
     
     pthread_join((pthread_t)(this->_handle), NULL);
+    this->_handle = 0;
     return RESULT_OK;
 }
 
