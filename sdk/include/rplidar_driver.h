@@ -117,7 +117,7 @@ public:
     virtual u_result setMotorPWM(_u16 pwm) = 0;
 
     /// Start RPLIDAR's motor when using accessory board
-    virtual u_result startMotor() = 0;
+    virtual u_result startMotor(_u16 pwm) = 0;
 
     /// Stop RPLIDAR's motor when using accessory board
     virtual u_result stopMotor() = 0;

@@ -982,6 +982,11 @@ u_result RPlidarDriverSerialImpl::setMotorPWM(_u16 pwm)
 {
     u_result ans;
     rplidar_payload_motor_pwm_t motor_pwm;
+    
+    //protection:
+    if(pwm > MAX_MOTOR_PWM)
+        pwm = MAX_MOTOR_PWM;
+    
     motor_pwm.pwm_value = pwm;
 
     {
@@ -995,10 +1000,10 @@ u_result RPlidarDriverSerialImpl::setMotorPWM(_u16 pwm)
     return RESULT_OK;
 }
 
-u_result RPlidarDriverSerialImpl::startMotor()
+u_result RPlidarDriverSerialImpl::startMotor(_u16 pwm)
 {
     if (_isSupportingMotorCtrl) { // RPLIDAR A2
-        setMotorPWM(DEFAULT_MOTOR_PWM);
+        setMotorPWM(pwm);
         delay(500);
         return RESULT_OK;
     } else { // RPLIDAR A1

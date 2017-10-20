@@ -63,7 +63,7 @@ public:
     virtual u_result getSampleDuration_uS(rplidar_response_sample_rate_t & rateInfo, _u32 timeout = DEFAULT_TIMEOUT);
 
     virtual u_result setMotorPWM(_u16 pwm);
-    virtual u_result startMotor();
+    virtual u_result startMotor(_u16 pwm);
     virtual u_result stopMotor();
     virtual u_result checkMotorCtrlSupport(bool & support, _u32 timeout = DEFAULT_TIMEOUT);
 	virtual u_result getFrequency(bool inExpressMode, size_t count, float & frequency, bool & is4kmode);
