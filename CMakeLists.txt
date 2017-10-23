@@ -35,6 +35,7 @@ include_directories(
 catkin_package()
 
 add_executable(rplidarNode src/node.cpp ${RPLIDAR_SDK_SRC})
+add_dependencies(rplidarNode ${${PROJECT_NAME}_EXPORTED_TARGETS})
 target_link_libraries(rplidarNode ${catkin_LIBRARIES})
 
 add_executable(rplidarNodeClient src/client.cpp)
