@@ -35,6 +35,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
+#include "rplidar_ros/StartMotor.h"
 #include "rplidar.h"
 
 #ifndef _countof
@@ -169,14 +170,14 @@ bool stop_motor(std_srvs::Empty::Request &req,
   return true;
 }
 
-bool start_motor(std_srvs::Empty::Request &req,
-                               std_srvs::Empty::Response &res)
+bool start_motor(rplidar_ros::StartMotor::Request &req,
+                               rplidar_ros::StartMotor::Response &res)
 {
   if(!drv)
        return false;
-  ROS_DEBUG("Start motor");
-  drv->startMotor();
-  drv->startScan();;
+  ROS_DEBUG("Start motor (%d)", req.pwm.data);
+  drv->startMotor(req.pwm.data);
+  drv->startScan();
   return true;
 }
 
@@ -185,6 +186,7 @@ int main(int argc, char * argv[]) {
 
     std::string serial_port;
     int serial_baudrate = 115200;
+    int motor_pwm;
     std::string frame_id;
     bool inverted = false;
     bool angle_compensate = true;
@@ -194,6 +196,7 @@ int main(int argc, char * argv[]) {
     ros::NodeHandle nh_private("~");
     nh_private.param<std::string>("serial_port", serial_port, "/dev/ttyUSB0"); 
     nh_private.param<int>("serial_baudrate", serial_baudrate, 115200); 
+    nh_private.param<int>("motor_pwm", motor_pwm, DEFAULT_MOTOR_PWM);
     nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
     nh_private.param<bool>("inverted", inverted, false);
     nh_private.param<bool>("angle_compensate", angle_compensate, true);
@@ -233,7 +236,7 @@ int main(int argc, char * argv[]) {
     ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
     ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
 
-    drv->startMotor();
+    drv->startMotor(motor_pwm);
     drv->startScan();
 
     ros::Time start_scan_time;
