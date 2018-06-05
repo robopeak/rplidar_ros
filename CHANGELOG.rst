@@ -4,6 +4,21 @@ Changelog for package rplidar_ros
 
 Forthcoming
 -----------
+1.6.0 (2018-05-21)
+------------------
+* Release 1.6.0.
+* Update RPLIDAR SDK to 1.6.0
+* Support new product RPLIDAR A3(default 16K model and max_distance 25m)
+* Contributors: kint
+
+
+1.5.7 (2016-12-15)
+------------------
+* Release 1.5.7.
+* Update RPLIDAR SDK to 1.5.7
+* Fixed the motor default speed at 10 HZ. Extend the measurement of max_distance from 6m to 8m.
+* Contributors: kint
+
 1.5.5 (2016-08-23)
 ------------------
 * Release 1.5.5.
