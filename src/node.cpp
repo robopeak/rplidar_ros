@@ -282,6 +282,7 @@ int main(int argc, char * argv[]) {
     ros::Time start_scan_time;
     ros::Time end_scan_time;
     double scan_duration;
+    uint32_t prev_num_subscribers=(uint32_t)-1;
     while (ros::ok()) {
         rplidar_response_measurement_node_hq_t nodes[360*8];
         size_t   count = _countof(nodes);
@@ -348,6 +349,18 @@ int main(int argc, char * argv[]) {
                              frame_id);
             }
         }
+
+        uint32_t num_subcribers = scan_pub.getNumSubscribers();
+        if (num_subcribers == 0 && prev_num_subscribers != 0) {
+            ROS_DEBUG("No subscribers: Stop motor");
+            drv->stop();
+            drv->stopMotor();
+        } else if (num_subcribers != 0 && prev_num_subscribers == 0) {
+            ROS_DEBUG("At least one subscribers: Start motor");
+            drv->startMotor();
+            drv->startScan(0,1);
+        }
+        prev_num_subscribers = num_subcribers;
 
         ros::spinOnce();
     }
