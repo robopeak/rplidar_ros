@@ -358,7 +358,7 @@ int main(int argc, char * argv[]) {
         } else if (num_subcribers != 0 && prev_num_subscribers == 0) {
             ROS_DEBUG("At least one subscribers: Start motor");
             drv->startMotor();
-            drv->startScan();;
+            drv->startScan(0,1);
         }
         prev_num_subscribers = num_subcribers;
 
