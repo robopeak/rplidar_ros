@@ -2,8 +2,30 @@
 Changelog for package rplidar_ros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.9.0 (2018-08-24)
+------------------
+* Update RPLIDAR SDK to 1.9.0
+* [new feature] support baudrate 57600 and 1382400, support HQ scan response
+* [bugfix] TCP channel doesn't work
+* [improvement] Print warning messages when deprecated APIs are called; imporve angular accuracy for ultra capsuled scan points
+* Contributors: tony,kint
+
+1.7.0 (2018-07-19)
+------------------
+* Update RPLIDAR SDK to 1.7.0
+* support scan points farther than 16.38m
+* upport display and set scan mode
+* Contributors: kint
+
+
+1.6.0 (2018-05-21)
+------------------
+* Release 1.6.0.
+* Update RPLIDAR SDK to 1.6.0
+* Support new product RPLIDAR A3(default 16K model and max_distance 25m)
+* Contributors: kint
+
+
 1.5.7 (2016-12-15)
 ------------------
 * Release 1.5.7.
