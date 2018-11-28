@@ -199,6 +199,7 @@ int main(int argc, char * argv[]) {
     nh_private.param<bool>("inverted", inverted, false);
     nh_private.param<bool>("angle_compensate", angle_compensate, false);
     nh_private.param<std::string>("scan_mode", scan_mode, std::string());
+    nh_private.param<int>("angle_compensate_multiple", angle_compensate_multiple, 4);//selected by hand to decide the number of scan
 
     ROS_INFO("RPLIDAR running on ROS package rplidar_ros. SDK Version:"RPLIDAR_SDK_VERSION"");
 
@@ -267,9 +268,12 @@ int main(int argc, char * argv[]) {
     if(IS_OK(op_result))
     {
         //default frequent is 10 hz (by motor pwm value),  current_scan_mode.us_per_sample is the number of scan point per us
-        angle_compensate_multiple = (int)(1000*1000/current_scan_mode.us_per_sample/10.0/360.0);
-        if(angle_compensate_multiple < 1) 
+        int angle_compensate_count = (int)(1000*1000/current_scan_mode.us_per_sample/10.0/360.0);
+
+        angle_compensate_multiple = std::min(angle_compensate_multiple, angle_compensate_count);
+        if(angle_compensate_multiple < 1)
           angle_compensate_multiple = 1;
+
         max_distance = current_scan_mode.max_distance;
         ROS_INFO("current scan mode: %s, max_distance: %.1f m, Point number: %.1fK , angle_compensate: %d",  current_scan_mode.scan_mode,
                  current_scan_mode.max_distance, (1000/current_scan_mode.us_per_sample), angle_compensate_multiple);
