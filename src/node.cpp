@@ -226,7 +226,11 @@ int main(int argc, char * argv[]) {
         ROS_ERROR("Create Driver fail, exit");
         return -2;
     }
-
+    
+    ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
+    ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
+    
+connect:
     if(channel_type == "tcp"){
         // make connection...
         if (IS_FAIL(drv->connect(tcp_ip.c_str(), (_u32)tcp_port))) {
@@ -256,9 +260,6 @@ int main(int argc, char * argv[]) {
         RPlidarDriver::DisposeDriver(drv);
         return -1;
     }
-
-    ros::ServiceServer stop_motor_service = nh.advertiseService("stop_motor", stop_motor);
-    ros::ServiceServer start_motor_service = nh.advertiseService("start_motor", start_motor);
 
     drv->startMotor();
 
@@ -377,6 +378,13 @@ int main(int argc, char * argv[]) {
                              angle_min, angle_max, max_distance,
                              frame_id);
             }
+        } else {
+            rplidar_response_device_health_t healthinfo;
+            op_result = drv->getHealth(healthinfo);
+            if (!IS_OK(op_result)) { 
+                goto connect;
+            } 
+            ros::Duration(0.1).sleep();
         }
 
         ros::spinOnce();
