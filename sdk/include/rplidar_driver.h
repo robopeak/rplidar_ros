@@ -49,6 +49,7 @@
         #define DEPRECATED(func) func
     #endif
 #endif
+#include <cstddef>
 
 namespace rp { namespace standalone{ namespace rplidar {
 
