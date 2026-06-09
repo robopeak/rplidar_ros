@@ -35,7 +35,7 @@ install(TARGETS rplidarNode rplidarNodeClient
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-install(DIRECTORY launch rviz sdk
+install(DIRECTORY launch rviz sdk urdf
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
   USE_SOURCE_PERMISSIONS
 )
